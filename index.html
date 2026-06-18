@@ -1,0 +1,912 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>香方物理演示</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #241914;
+      --muted: #735f52;
+      --paper: #f7f0e4;
+      --cedar: #784b31;
+      --lacquer: #9b3f28;
+      --gold: #c99647;
+      --line: rgba(93, 61, 43, .18);
+      font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", system-ui, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 19% 12%, rgba(255, 245, 220, .72), transparent 30%),
+        linear-gradient(140deg, #f3e1c6 0%, #e3c59d 45%, #c79a6a 100%);
+      overflow-x: hidden;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+      gap: 22px;
+      padding: 24px;
+    }
+
+    .stage-wrap {
+      position: relative;
+      min-height: calc(100vh - 48px);
+      border: 1px solid rgba(71, 43, 28, .18);
+      border-radius: 8px;
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(255, 252, 243, .70), rgba(229, 193, 145, .58)),
+        url("照片素材/视频照片/新建文件夹/碗.jpg");
+      background-size: cover;
+      background-position: center;
+      box-shadow: 0 26px 80px rgba(70, 39, 21, .26);
+    }
+
+    .stage-wrap::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(255, 246, 226, .82), rgba(143, 83, 45, .30)),
+        radial-gradient(ellipse at 50% 70%, transparent 0 38%, rgba(50, 28, 18, .24) 100%);
+      pointer-events: none;
+    }
+
+    .topbar {
+      position: absolute;
+      left: 26px;
+      right: 26px;
+      top: 22px;
+      z-index: 3;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      color: #2d1f17;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(24px, 3.6vw, 54px);
+      line-height: 1.05;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .status {
+      min-width: 170px;
+      padding: 11px 14px;
+      border: 1px solid rgba(75, 48, 31, .18);
+      border-radius: 8px;
+      color: #4e3324;
+      background: rgba(255, 247, 232, .66);
+      backdrop-filter: blur(8px);
+      font-size: 14px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(72, 39, 20, .12);
+    }
+
+    canvas {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .actions {
+      position: absolute;
+      z-index: 4;
+      left: 50%;
+      bottom: 28px;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 14px 22px;
+      min-height: 48px;
+      color: #fff9ee;
+      background: linear-gradient(180deg, #a84b31, #71311f);
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 14px 30px rgba(75, 30, 14, .28);
+      transition: transform .18s ease, opacity .18s ease, filter .18s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: .45;
+      transform: none;
+    }
+
+    #burnBtn {
+      opacity: 0;
+      pointer-events: none;
+      background: linear-gradient(180deg, #35302a, #14110f);
+    }
+
+    #burnBtn.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .panel {
+      min-height: calc(100vh - 48px);
+      padding: 22px;
+      border: 1px solid rgba(64, 38, 23, .18);
+      border-radius: 8px;
+      background: rgba(255, 247, 232, .82);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 18px 60px rgba(83, 45, 22, .16);
+    }
+
+    .panel h2 {
+      margin: 0 0 8px;
+      font-size: 22px;
+      line-height: 1.2;
+    }
+
+    .panel p {
+      margin: 0 0 22px;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 14px;
+    }
+
+    .recipe {
+      display: grid;
+      gap: 16px;
+    }
+
+    .ingredient {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 252, 244, .72);
+    }
+
+    .ingredient-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .name {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+    }
+
+    .swatch {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 2px solid rgba(72, 42, 24, .18);
+      box-shadow: inset 0 2px 5px rgba(255, 255, 255, .32);
+    }
+
+    .amount {
+      min-width: 46px;
+      text-align: right;
+      color: #7d4f31;
+      font-weight: 800;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--lacquer);
+    }
+
+    .formula {
+      margin-top: 18px;
+      padding: 15px;
+      border-radius: 8px;
+      background: rgba(84, 48, 30, .08);
+      color: #5d3d2b;
+      line-height: 1.65;
+      font-size: 14px;
+    }
+
+    .legend {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .legend div {
+      min-height: 66px;
+      padding: 10px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .42);
+      border: 1px solid var(--line);
+      font-size: 12px;
+      line-height: 1.35;
+      color: #73503b;
+    }
+
+    .legend strong {
+      display: block;
+      margin-bottom: 4px;
+      color: #38261d;
+      font-size: 13px;
+    }
+
+    @media (max-width: 980px) {
+      .app {
+        grid-template-columns: 1fr;
+        padding: 14px;
+      }
+
+      .stage-wrap {
+        min-height: 68vh;
+      }
+
+      .panel {
+        min-height: auto;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .topbar {
+        left: 14px;
+        right: 14px;
+        top: 14px;
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .status {
+        min-width: 0;
+        width: 100%;
+      }
+
+      .actions {
+        width: calc(100% - 28px);
+        bottom: 16px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      button {
+        flex: 1 1 150px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="stage-wrap" aria-label="香粉物理演示动画">
+      <div class="topbar">
+        <h1>香方燃烧反应AI模拟器</h1>
+        <div class="status" id="status">调配三味香粉</div>
+      </div>
+      <canvas id="scene"></canvas>
+      <div class="actions">
+        <button id="mixBtn" type="button">确定配比</button>
+        <button id="burnBtn" type="button">开始模拟</button>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <h2>三味香粉配方</h2>
+      <p>拖动比例后，桌面的三只粉碟会以沙堆形式实时增减。确定组合后，香粉汇入碗中融合，并压制成一根线香。</p>
+      <div class="recipe" id="recipe"></div>
+      <div class="formula" id="formula"></div>
+      <div class="legend">
+        <div><strong>檀香</strong>木质沉稳，增加主干烟气。</div>
+        <div><strong>艾草</strong>草本清冽，让燃烧更轻扬。</div>
+        <div><strong>陈皮</strong>温暖甜润，带来橘皮尾调。</div>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    const canvas = document.getElementById("scene");
+    const ctx = canvas.getContext("2d");
+    const recipeEl = document.getElementById("recipe");
+    const formulaEl = document.getElementById("formula");
+    const statusEl = document.getElementById("status");
+    const mixBtn = document.getElementById("mixBtn");
+    const burnBtn = document.getElementById("burnBtn");
+
+    const ingredients = [
+      { key: "sandal", name: "檀香", value: 42, color: "#b88752", dark: "#6f4226", note: "稳香骨" },
+      { key: "mugwort", name: "艾草", value: 30, color: "#8b9560", dark: "#4d5836", note: "草木气" },
+      { key: "peel", name: "陈皮", value: 28, color: "#c77535", dark: "#77401f", note: "暖甜尾" }
+    ];
+
+    const state = {
+      phase: "compose",
+      t: 0,
+      mixStart: 0,
+      burnStart: 0,
+      dpr: 1,
+      w: 0,
+      h: 0,
+      powder: [],
+      falling: [],
+      smoke: [],
+      emberNoise: Math.random() * 1000,
+      burnProfile: 0
+    };
+
+    function clamp(n, a, b) {
+      return Math.max(a, Math.min(b, n));
+    }
+
+    function mixColor() {
+      const total = ingredients.reduce((sum, item) => sum + item.value, 0) || 1;
+      const rgb = ingredients.reduce((acc, item) => {
+        const weight = item.value / total;
+        const hex = item.color.replace("#", "");
+        acc[0] += parseInt(hex.slice(0, 2), 16) * weight;
+        acc[1] += parseInt(hex.slice(2, 4), 16) * weight;
+        acc[2] += parseInt(hex.slice(4, 6), 16) * weight;
+        return acc;
+      }, [0, 0, 0]).map(Math.round);
+      return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
+    }
+
+    function smokeMetrics() {
+      const total = ingredients.reduce((sum, item) => sum + item.value, 0) || 1;
+      const sandal = ingredients[0].value / total;
+      const mugwort = ingredients[1].value / total;
+      const peel = ingredients[2].value / total;
+      const rawDensity = Math.pow(sandal * .95 + peel * .48 + mugwort * .10, 2.55);
+      const balance = 1 - Math.max(
+        Math.abs(sandal - mugwort),
+        Math.abs(mugwort - peel),
+        Math.abs(peel - sandal)
+      );
+      return {
+        density: clamp(rawDensity + balance * .10, .006, .92),
+        curl: .65 + mugwort * 1.55 + peel * .42,
+        rise: .74 + sandal * .42 + mugwort * .20,
+        blue: 190 + Math.round(mugwort * 34),
+        emission: clamp(rawDensity * 1.45 + balance * .16, .02, .86)
+      };
+    }
+
+    function buildControls() {
+      recipeEl.innerHTML = "";
+      ingredients.forEach((item) => {
+        const row = document.createElement("div");
+        row.className = "ingredient";
+        row.innerHTML = `
+          <div class="ingredient-head">
+            <div class="name"><span class="swatch" style="background:${item.color}"></span>${item.name}</div>
+            <div class="amount" id="${item.key}-amount">${item.value}%</div>
+          </div>
+          <input aria-label="${item.name}比例" min="5" max="80" step="1" value="${item.value}" type="range">
+        `;
+        const input = row.querySelector("input");
+        input.addEventListener("input", () => {
+          item.value = Number(input.value);
+          document.getElementById(`${item.key}-amount`).textContent = `${item.value}%`;
+          updateFormula();
+          seedPowder();
+          if (state.phase !== "compose") resetToCompose();
+        });
+        recipeEl.appendChild(row);
+      });
+      updateFormula();
+    }
+
+    function updateFormula() {
+      const total = ingredients.reduce((sum, item) => sum + item.value, 0);
+      const parts = ingredients.map((item) => `${item.name} ${Math.round(item.value / total * 100)}%`);
+      const density = Math.round(smokeMetrics().density * 100);
+      formulaEl.textContent = `当前香方：${parts.join(" / ")}。香体颜色由三味粉料融合，烟雾浓度约 ${density}%，最低配比会接近透明。`;
+    }
+
+    function resize() {
+      const rect = canvas.getBoundingClientRect();
+      state.dpr = Math.min(window.devicePixelRatio || 1, 2);
+      state.w = Math.max(1, Math.floor(rect.width));
+      state.h = Math.max(1, Math.floor(rect.height));
+      canvas.width = Math.floor(state.w * state.dpr);
+      canvas.height = Math.floor(state.h * state.dpr);
+      ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+      seedPowder();
+    }
+
+    function seeded(i, salt) {
+      const x = Math.sin(i * 127.1 + salt * 311.7) * 43758.5453;
+      return x - Math.floor(x);
+    }
+
+    function dishPositions() {
+      const y = state.h * 0.78;
+      return [
+        { x: state.w * 0.23, y },
+        { x: state.w * 0.50, y: y + state.h * 0.025 },
+        { x: state.w * 0.77, y }
+      ];
+    }
+
+    function bowl() {
+      return {
+        x: state.w * 0.5,
+        y: state.h * 0.58,
+        rx: clamp(state.w * 0.16, 96, 190),
+        ry: clamp(state.h * 0.085, 46, 76)
+      };
+    }
+
+    function seedPowder() {
+      if (!state.w || !state.h) return;
+      state.powder = [];
+      const dishes = dishPositions();
+      ingredients.forEach((item, idx) => {
+        const count = Math.floor(75 + item.value * 2.4);
+        const dish = dishes[idx];
+        for (let i = 0; i < count; i++) {
+          const r1 = seeded(i, idx + 1);
+          const r2 = seeded(i, idx + 8);
+          const angle = r1 * Math.PI * 2;
+          const mound = Math.pow(r2, .52);
+          const pileRadius = clamp(24 + item.value * .75, 34, 78);
+          state.powder.push({
+            ingredient: idx,
+            x: dish.x + Math.cos(angle) * mound * pileRadius * .92,
+            y: dish.y - 8 + Math.sin(angle) * mound * pileRadius * .42 - Math.pow(1 - mound, 2) * pileRadius * .55,
+            size: 1.2 + seeded(i, idx + 20) * 2.3,
+            shade: seeded(i, idx + 30),
+            drift: seeded(i, idx + 40) * 2 - 1
+          });
+        }
+      });
+    }
+
+    function resetToCompose() {
+      state.phase = "compose";
+      state.falling = [];
+      state.smoke = [];
+      burnBtn.classList.remove("visible");
+      mixBtn.disabled = false;
+      statusEl.textContent = "调配三味香粉";
+    }
+
+    function drawTable() {
+      const y = state.h * .82;
+      const grad = ctx.createLinearGradient(0, y - 40, 0, state.h);
+      grad.addColorStop(0, "rgba(126, 77, 43, .58)");
+      grad.addColorStop(1, "rgba(78, 43, 27, .76)");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, y - 50, state.w, state.h - y + 90);
+
+      ctx.fillStyle = "rgba(255, 232, 192, .16)";
+      for (let i = 0; i < 16; i++) {
+        const yy = y - 20 + i * 16;
+        ctx.fillRect(0, yy, state.w, 1);
+      }
+    }
+
+    function ellipse(x, y, rx, ry, fill, stroke) {
+      ctx.beginPath();
+      ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+      if (fill) {
+        ctx.fillStyle = fill;
+        ctx.fill();
+      }
+      if (stroke) {
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
+
+    function drawDish(dish, item, idx) {
+      const rx = clamp(state.w * .085, 58, 108);
+      const ry = clamp(state.h * .036, 22, 36);
+      ellipse(dish.x, dish.y + 18, rx, ry, "rgba(58, 34, 23, .20)");
+      ellipse(dish.x, dish.y + 4, rx, ry, "rgba(238, 219, 184, .96)", "rgba(112, 70, 42, .28)");
+      ellipse(dish.x, dish.y - 1, rx * .76, ry * .58, "rgba(137, 91, 55, .18)");
+      ctx.fillStyle = "rgba(53, 30, 19, .72)";
+      ctx.font = "700 14px Microsoft YaHei, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(item.name, dish.x, dish.y + 57);
+      ctx.font = "12px Microsoft YaHei, sans-serif";
+      ctx.fillStyle = "rgba(83, 53, 36, .68)";
+      ctx.fillText(item.note, dish.x, dish.y + 76);
+      ctx.fillStyle = item.color;
+      ctx.globalAlpha = .20;
+      ellipse(dish.x, dish.y - 2, rx * .52, ry * .40, item.color);
+      ctx.globalAlpha = 1;
+    }
+
+    function drawPowderParticles(progress) {
+      for (const p of state.powder) {
+        const item = ingredients[p.ingredient];
+        let x = p.x;
+        let y = p.y;
+        let alpha = 1;
+        if (progress > 0) {
+          const target = bowl();
+          const local = clamp((progress - p.shade * .18) / .82, 0, 1);
+          const ease = 1 - Math.pow(1 - local, 3);
+          x = p.x + (target.x + p.drift * target.rx * .4 - p.x) * ease;
+          y = p.y + (target.y - target.ry * .12 - p.y) * ease - Math.sin(local * Math.PI) * state.h * .16;
+          alpha = 1 - clamp((progress - .78) * 5, 0, .82);
+        }
+        ctx.beginPath();
+        ctx.fillStyle = p.shade > .52 ? item.color : item.dark;
+        ctx.globalAlpha = alpha * (.68 + p.shade * .28);
+        ctx.arc(x, y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function drawBowl(progress) {
+      const b = bowl();
+      ellipse(b.x, b.y + b.ry * .75, b.rx * 1.03, b.ry * .42, "rgba(46, 25, 18, .30)");
+      const body = ctx.createLinearGradient(b.x, b.y - b.ry, b.x, b.y + b.ry * 1.8);
+      body.addColorStop(0, "#f1d8b2");
+      body.addColorStop(.48, "#9e6040");
+      body.addColorStop(1, "#4a261b");
+      ctx.beginPath();
+      ctx.ellipse(b.x, b.y, b.rx, b.ry, 0, 0, Math.PI, true);
+      ctx.quadraticCurveTo(b.x + b.rx * .74, b.y + b.ry * 1.75, b.x, b.y + b.ry * 1.45);
+      ctx.quadraticCurveTo(b.x - b.rx * .74, b.y + b.ry * 1.75, b.x - b.rx, b.y);
+      ctx.fillStyle = body;
+      ctx.fill();
+      ellipse(b.x, b.y, b.rx, b.ry, "rgba(250, 231, 196, .96)", "rgba(62, 36, 25, .32)");
+      ellipse(b.x, b.y + 3, b.rx * .78, b.ry * .57, "rgba(62, 36, 26, .28)");
+
+      if (progress > .38) {
+        const fillProgress = clamp((progress - .38) / .32, 0, 1);
+        ctx.save();
+        ctx.beginPath();
+        ctx.ellipse(b.x, b.y + 4, b.rx * .74, b.ry * .50, 0, 0, Math.PI * 2);
+        ctx.clip();
+        const fill = ctx.createRadialGradient(b.x - b.rx * .2, b.y - b.ry * .1, 4, b.x, b.y, b.rx);
+        fill.addColorStop(0, "#d09b61");
+        fill.addColorStop(1, mixColor());
+        ctx.fillStyle = fill;
+        ctx.globalAlpha = .82;
+        ctx.fillRect(b.x - b.rx, b.y + b.ry * (.45 - fillProgress * .82), b.rx * 2, b.ry);
+        ctx.restore();
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    function drawIncense(progress, burning) {
+      const b = bowl();
+      const appear = clamp((progress - .60) / .28, 0, 1);
+      if (appear <= 0) return;
+      const length = clamp(state.h * .37, 210, 330) * appear;
+      const width = clamp(state.w * .0055, 4.2, 6.2);
+      const x = b.x;
+      const baseY = b.y + b.ry * .18;
+      const topY = baseY - length;
+      const color = mixColor();
+
+      ctx.save();
+      ctx.translate(x, baseY);
+      ctx.rotate(-0.018);
+      const stickGrad = ctx.createLinearGradient(-width, -length, width, 0);
+      stickGrad.addColorStop(0, "#17110e");
+      stickGrad.addColorStop(.10, "#d6be75");
+      stickGrad.addColorStop(.22, color);
+      stickGrad.addColorStop(1, "#5d3a23");
+      ctx.fillStyle = stickGrad;
+      ctx.beginPath();
+      ctx.roundRect(-width / 2, -length, width, length + 16, width / 2);
+      ctx.fill();
+
+      ctx.globalAlpha = .22;
+      for (let i = 0; i < length; i += 12) {
+        ctx.fillStyle = i % 24 === 0 ? "#efe0a4" : "#1c1512";
+        ctx.fillRect(-width / 2, -i, width, 1);
+      }
+      ctx.globalAlpha = 1;
+
+      if (burning) {
+        const emberY = -length + 7;
+        const pulse = 1 + Math.sin(state.t * .018) * .08;
+        const ember = ctx.createRadialGradient(0, emberY, 0, 0, emberY, 13 * pulse);
+        ember.addColorStop(0, "rgba(255, 246, 173, .98)");
+        ember.addColorStop(.20, "rgba(255, 180, 62, .86)");
+        ember.addColorStop(.45, "rgba(188, 63, 26, .42)");
+        ember.addColorStop(1, "rgba(135, 35, 19, 0)");
+        ctx.fillStyle = ember;
+        ctx.beginPath();
+        ctx.arc(0, emberY, 13 * pulse, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#211817";
+        ctx.globalAlpha = .92;
+        ctx.beginPath();
+        ctx.ellipse(0, emberY + 5, width * .58, 6, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+
+      if (burning) {
+        emitSmoke(x + length * .018, topY + 8);
+        drawSmokeRibbon(x + length * .018, topY + 8);
+        drawSmoke();
+      }
+    }
+
+    function drawSmokeRibbon(x, y) {
+      const metrics = smokeMetrics();
+      const height = clamp(state.h * .34, 180, 310);
+      const density = metrics.density;
+      const sway = Math.sin(state.t * .0014 + state.burnProfile) * 12;
+      const curl = Math.sin(state.t * .0021 + state.burnProfile * 2) * 20;
+
+      ctx.save();
+      ctx.globalCompositeOperation = "screen";
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+
+      const main = ctx.createLinearGradient(x, y, x + sway, y - height);
+      main.addColorStop(0, `rgba(255, 247, 231, ${density * .28})`);
+      main.addColorStop(.26, `rgba(239, 246, 246, ${density * .34})`);
+      main.addColorStop(.72, `rgba(198, 214, 229, ${density * .18})`);
+      main.addColorStop(1, "rgba(190, 205, 222, 0)");
+      ctx.strokeStyle = main;
+      ctx.lineWidth = clamp(state.w * .004, 3, 7);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.bezierCurveTo(
+        x - 4,
+        y - height * .26,
+        x + sway * .35,
+        y - height * .58,
+        x + sway + curl * .12,
+        y - height
+      );
+      ctx.stroke();
+
+      ctx.strokeStyle = `rgba(245, 248, 246, ${density * .42})`;
+      ctx.lineWidth = clamp(state.w * .0016, 1.2, 2.6);
+      ctx.beginPath();
+      ctx.moveTo(x + 1.5, y - 5);
+      ctx.bezierCurveTo(
+        x + 2,
+        y - height * .30,
+        x + sway * .45 + 4,
+        y - height * .55,
+        x + sway + curl * .20,
+        y - height * .93
+      );
+      ctx.stroke();
+
+      ctx.strokeStyle = `rgba(172, 193, 218, ${density * .14})`;
+      ctx.lineWidth = clamp(state.w * .0022, 1.8, 4);
+      ctx.beginPath();
+      ctx.moveTo(x - 1, y - height * .28);
+      ctx.bezierCurveTo(
+        x + 18,
+        y - height * .50,
+        x + sway + curl,
+        y - height * .68,
+        x + sway + curl * 1.35,
+        y - height * .83
+      );
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function emitSmoke(x, y) {
+      const metrics = smokeMetrics();
+      const chance = .10 + metrics.emission * .55;
+      const maxSmoke = Math.round(36 + metrics.emission * 118);
+      if (state.smoke.length < maxSmoke && Math.random() < chance) {
+        const profiles = [
+          { spread: .26, rise: 1.02, curl: 1.18 },
+          { spread: .40, rise: .90, curl: 1.62 },
+          { spread: .18, rise: 1.20, curl: .82 }
+        ];
+        const p = profiles[state.burnProfile];
+        state.smoke.push({
+          x: x + (Math.random() - .5) * 2.4,
+          y,
+          px: x,
+          py: y,
+          originX: x,
+          vx: (Math.random() - .5) * p.spread * metrics.curl,
+          vy: -(.58 + Math.random() * .38) * p.rise * metrics.rise,
+          life: 0,
+          max: 210 + Math.random() * 230,
+          r: 3 + Math.random() * 7,
+          width: .42 + Math.random() * 1.08,
+          curl: p.curl * metrics.curl * (Math.random() > .5 ? 1 : -1),
+          density: metrics.density,
+          blue: metrics.blue,
+          seed: Math.random() * Math.PI * 2,
+          branch: Math.random() > .74 ? (Math.random() > .5 ? 1 : -1) : 0
+        });
+      }
+    }
+
+    function drawSmoke() {
+      ctx.save();
+      ctx.globalCompositeOperation = "screen";
+      for (let i = state.smoke.length - 1; i >= 0; i--) {
+        const s = state.smoke[i];
+        s.px = s.x;
+        s.py = s.y;
+        s.life += 1;
+        const age = s.life / s.max;
+        const column = Math.pow(clamp(age * 1.55, 0, 1), 2.2);
+        const columnPull = (s.originX - s.x) * (1 - column) * .075;
+        const sideDrift = Math.sin((state.t * .0016) + s.life * .026 + s.seed) * s.curl * column;
+        const branchDrift = s.branch * Math.pow(clamp(age - .42, 0, 1), 1.4) * .78;
+        s.x += s.vx * (.28 + column * .84) + sideDrift + branchDrift + columnPull;
+        s.y += s.vy;
+        s.vx *= .988;
+        s.vy *= .998;
+        if (age >= 1) {
+          state.smoke.splice(i, 1);
+          continue;
+        }
+        const alpha = Math.pow(1 - age, 1.55) * (.026 + s.density * .34);
+        const lift = 1 + age * 3.2;
+        const coreAlpha = alpha * (1.45 - column * .35);
+
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.strokeStyle = `rgba(238, 244, 246, ${coreAlpha})`;
+        ctx.lineWidth = s.width * lift;
+        ctx.beginPath();
+        ctx.moveTo(s.px, s.py);
+        ctx.bezierCurveTo(
+          s.px + Math.sin(s.seed + age * 5) * (2 + column * 12),
+          s.py - 18 - age * 24,
+          s.x + Math.cos(s.seed + age * 5.5) * (3 + column * 18),
+          s.y + 10,
+          s.x,
+          s.y
+        );
+        ctx.stroke();
+
+        ctx.strokeStyle = `rgba(155, 178, 205, ${alpha * .48})`;
+        ctx.lineWidth = s.width * lift * 2.9;
+        ctx.beginPath();
+        ctx.moveTo(s.px, s.py);
+        ctx.bezierCurveTo(
+          s.px + Math.sin(s.seed + age * 4) * (1 + column * 10),
+          s.py - 14 - age * 20,
+          s.x + Math.cos(s.seed + age * 4.5) * (2 + column * 16),
+          s.y + 8,
+          s.x,
+          s.y
+        );
+        ctx.stroke();
+
+        const radius = s.r * (1 + age * 2.7);
+        const haze = alpha * (.18 + column * .36);
+        const grad = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, radius);
+        grad.addColorStop(0, `rgba(235, 240, 238, ${haze})`);
+        grad.addColorStop(.52, `rgba(167, 181, 194, ${haze * .34})`);
+        grad.addColorStop(1, "rgba(112, 127, 150, 0)");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function drawAmbientDust() {
+      ctx.save();
+      ctx.globalAlpha = .28;
+      for (let i = 0; i < 55; i++) {
+        const x = seeded(i, 91) * state.w + Math.sin(state.t * .0008 + i) * 18;
+        const y = (seeded(i, 117) * state.h + state.t * .012 * (i % 3 + 1)) % state.h;
+        ctx.fillStyle = i % 2 ? "#fff3d6" : "#7a5137";
+        ctx.beginPath();
+        ctx.arc(x, y, .6 + seeded(i, 131) * 1.3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function drawBurningBackdrop() {
+      const top = ctx.createLinearGradient(0, 0, 0, state.h * .72);
+      top.addColorStop(0, "rgba(7, 10, 10, .78)");
+      top.addColorStop(.45, "rgba(15, 18, 17, .66)");
+      top.addColorStop(1, "rgba(48, 35, 25, .10)");
+      ctx.fillStyle = top;
+      ctx.fillRect(0, 0, state.w, state.h * .72);
+
+      const glow = ctx.createRadialGradient(
+        state.w * .52,
+        state.h * .44,
+        state.w * .05,
+        state.w * .52,
+        state.h * .44,
+        state.w * .42
+      );
+      glow.addColorStop(0, "rgba(136, 109, 66, .16)");
+      glow.addColorStop(.42, "rgba(68, 54, 42, .08)");
+      glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, state.w, state.h * .72);
+    }
+
+    function render(now) {
+      state.t = now;
+      ctx.clearRect(0, 0, state.w, state.h);
+      drawTable();
+      if (state.phase === "burning") {
+        drawBurningBackdrop();
+      }
+      drawAmbientDust();
+
+      const dishes = dishPositions();
+      dishes.forEach((dish, idx) => drawDish(dish, ingredients[idx], idx));
+
+      let mixProgress = 0;
+      if (state.phase === "mixing" || state.phase === "formed" || state.phase === "burning") {
+        mixProgress = clamp((now - state.mixStart) / 2800, 0, 1);
+        if (state.phase === "mixing" && mixProgress >= 1) {
+          state.phase = "formed";
+          statusEl.textContent = "线香已成形";
+          burnBtn.classList.add("visible");
+        }
+      }
+
+      drawPowderParticles(mixProgress);
+      drawBowl(mixProgress);
+      drawIncense(mixProgress, state.phase === "burning");
+
+      requestAnimationFrame(render);
+    }
+
+    mixBtn.addEventListener("click", () => {
+      if (state.phase !== "compose") return;
+      state.phase = "mixing";
+      state.mixStart = performance.now();
+      state.smoke = [];
+      mixBtn.disabled = true;
+      statusEl.textContent = "香粉入碗融合";
+    });
+
+    burnBtn.addEventListener("click", () => {
+      if (state.phase !== "formed") return;
+      state.phase = "burning";
+      state.burnStart = performance.now();
+      state.burnProfile = Math.floor(Math.random() * 3);
+      state.smoke = [];
+      burnBtn.disabled = true;
+      statusEl.textContent = "烟气正在随机模拟";
+    });
+
+    buildControls();
+    window.addEventListener("resize", resize);
+    resize();
+    requestAnimationFrame(render);
+  </script>
+</body>
+</html>
