@@ -15,29 +15,53 @@
 ## 目录结构
 incense-match-algorithm/
 ├── inc/ // 头文件目录
+
 │ ├── incense_vec.h // 向量、枚举、结构体基础定义
+
 │ ├── filter_rule.h // 硬过滤规则接口
+
 │ ├── match_core.h // 相似度、打分、排序核心算法
+
 │ ├── material_relate.h// 香材相生相克配伍矩阵
+
 │ ├── genetic_incense.h// 遗传算法定制香方
+
 │ └── test_case.h // 单元测试用例声明
+
 ├── src/ // 算法实现源码
+
 │ ├── incense_vec.c
+
 │ ├── filter_rule.c
+
 │ ├── match_core.c
+
 │ ├── material_relate.c
+
 │ ├── genetic_incense.c
+
 │ └── main.c // 程序入口演示 Demo
+
 ├── data/ // 内置香材、成品数据库
+
 │ ├── material_data.h
+
 │ └── product_data.h
+
 ├── test/
+
 │ └── test_main.c // 单元测试入口
+
 ├── docs/
+
 │ └── algorithm.md // 算法原理、设计文档
+
 ├── Makefile // Linux/macOS 编译脚本
+
 ├── Makefile_win // Windows MinGW 编译脚本
+
 ├── .gitignore // Git 忽略配置
+
 └── README.md
 
 plaintext
