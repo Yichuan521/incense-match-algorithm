@@ -12,7 +12,6 @@
 
 适用场景：AI香品定制APP后端、智能香氛检测仪、线上香品推荐系统。
 
-```bash
 ## 目录结构
 incense-match-algorithm/
 ├── inc/ // 头文件目录
