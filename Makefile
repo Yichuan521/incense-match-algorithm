@@ -1,0 +1,16 @@
+CC = gcc
+CFLAGS = -std=c99 -Wall -O2
+SRC = src/main.c src/incense_vec.c src/filter_rule.c src/match_core.c src/material_relate.c src/genetic_incense.c
+INC = -Iinc -Idata
+TARGET = incense_match_demo
+
+all: $(TARGET)
+
+$(TARGET): $(SRC)
+	$(CC) $(CFLAGS) $(INC) $(SRC) -o $(TARGET)
+
+test:
+	$(CC) $(CFLAGS) $(INC) test/test_main.c src/*.c -o test_demo
+
+clean:
+	rm -rf *.o $(TARGET) test_demo
